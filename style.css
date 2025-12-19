@@ -278,3 +278,79 @@ input {
 [data-theme="dark"] input {
   background: rgba(42, 42, 42, 0.9);
 }
+
+
+
+/* 代码高亮样式（复刻 VSCode Light+ 亮色主题，微调优化） */
+.hljs {
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 4px;
+  color: #000000; /* Light+ 基础文字色（纯黑，高对比） */
+}
+
+/* VSCode Light+ 原生配色（微调优化可读性） */
+.hljs-keyword {
+  color: #0066FF; /* 微调为更鲜艳的纯蓝，避免浅蓝看不清 */
+  font-weight: normal;
+}
+
+.hljs-variable {
+  color: #1A1A1A; /* 微调为深灰，比纯黑更柔和但仍清晰 */
+}
+
+.hljs-string {
+  color: #C01010; /* 微调为更鲜艳的暗红，提升辨识度 */
+}
+
+.hljs-number {
+  color: #009966; /* 微调为更鲜艳的深绿，避免偏黄 */
+}
+
+.hljs-comment {
+  color: #00AA00; /* 微调为更鲜艳的绿色，避免浅绿灰暗 */
+  font-style: italic;
+}
+
+.hljs-function {
+  color: #886622; /* 微调为更鲜艳的棕黄，提升对比度 */
+}
+
+.hljs-class {
+  color: #1A88FF; /* 微调为更鲜艳的钢蓝，避免偏灰 */
+}
+
+/* 针对 dark mode 的调整（复刻 VSCode Dark+ 深色主题，重点优化配色） */
+[data-theme="dark"] .hljs {
+  background-color: #ffffff; /* 保留原有背景，仅优化字体色 */
+  color: #E0E0E0; /* Dark+ 基础文字色（亮浅灰，比原 #D4D4D4 更亮，避免灰暗） */
+}
+
+/* VSCode Dark+ 优化配色（核心：高对比度、高鲜艳度，无灰暗色） */
+[data-theme="dark"] .hljs-keyword {
+  color: #61AFEF; /* 亮蓝色（鲜艳不刺眼，替代原灰暗的 #569CD6） */
+}
+
+[data-theme="dark"] .hljs-variable {
+  color: #A7D8FF; /* 浅青蓝（更亮更通透，替代原偏灰的 #9CDCFE） */
+}
+
+[data-theme="dark"] .hljs-string {
+  color: #E59866; /* 三文鱼橙（更鲜艳，替代原偏暗的 #CE9178） */
+}
+
+[data-theme="dark"] .hljs-number {
+  color: #98C379; /* 薄荷绿（更亮更清新，替代原偏灰的 #B5CEA8） */
+}
+
+[data-theme="dark"] .hljs-comment {
+  color: #72B865; /* 橄榄绿（更亮更通透，替代原偏暗的 #6A9955） */
+}
+
+[data-theme="dark"] .hljs-function {
+  color: #E5E58A; /* 浅金黄（更亮更醒目，替代原偏灰的 #DCDCAA） */
+}
+
+[data-theme="dark"] .hljs-class {
+  color: #56D9B9; /* 青柠绿（更鲜艳，替代原偏暗的 #4EC9B0） */
+}
