@@ -84,9 +84,21 @@ const sidebarRight = document.getElementById('sidebarRight');
 const toggleRightSidebarBtn = document.getElementById('toggleRightSidebarBtn');
 const toggleRightSidebar = document.getElementById('toggleRightSidebar');
 const fileList = document.getElementById('fileList');
-const newFileBtn = document.getElementById('newFileBtn');
+
 const saveFileBtn = document.getElementById('saveFileBtn');
-const deleteFileBtn = document.getElementById('deleteFileBtn');
+
+// 修复：删除当前文件按钮的事件绑定（显式传递当前文件参数，兜底校验）
+deleteFileBtn.addEventListener('click', () => {
+  // 兜底：若currentFile为空，提示用户
+  if (!fileSystem.currentFile) {
+    alert('暂无当前编辑的文件，无法删除！');
+    return;
+  }
+  // 显式调用删除当前文件
+  deleteFile(fileSystem.currentFile);
+});
+
+
 const fileNameInput = document.getElementById('fileNameInput');
 const importFileBtn = document.getElementById('importFileBtn');
 
@@ -204,32 +216,47 @@ function saveFile() {
 }
 
 // 删除文件
+// 删除文件
+// 删除文件
+// 删除文件
 function deleteFile(filename) {
+  // 1. 补全参数：未传文件名则删除当前文件
   if (!filename) filename = fileSystem.currentFile;
-  if (!filename || !fileSystem.files[filename]) return;
   
+  // 2. 校验文件存在性：避免删除不存在的文件
+  if (!filename || !fileSystem.files[filename]) {
+    alert(`文件 "${filename || '未知'}.md" 不存在或已被删除`);
+    return;
+  }
+
+  // 3. 确认删除操作
   if (!confirm(`确定要删除 "${filename}.md" 吗？`)) {
     return;
   }
-  
-  // 删除文件
+
+  // 4. 标记是否为当前文件（核心：提前缓存状态）
+  const isDeleteCurrentFile = fileSystem.currentFile === filename;
+
+  // 5. 核心操作：删除文件（先删内存中的文件）
   delete fileSystem.files[filename];
+
+  // 6. 同步删除结果到本地存储（优先同步，避免后续操作覆盖）
   saveFilesToStorage();
-  
-  // 如果删除的是当前文件，切换到第一个文件或清空
-  const fileNames = Object.keys(fileSystem.files);
-  if (fileSystem.currentFile === filename) {
-    if (fileNames.length > 0) {
-      openFile(fileNames[0]);
-    } else {
-      fileSystem.currentFile = null;
-      editor.value = '';
-      fileNameInput.value = '';
-      renderPreview();
-    }
+
+  // 7. 处理当前文件删除后的逻辑（满足“编辑区清空”的核心需求）
+  if (isDeleteCurrentFile) {
+    // 无论是否有其他文件，都清空编辑区（你要的核心效果）
+    fileSystem.currentFile = null; // 重置当前文件状态，阻断回写
+    editor.value = '';            // 清空编辑器内容
+    fileNameInput.value = '';     // 清空文件名输入框
+    renderPreview();              // 刷新预览区（清空预览）
   }
-  
+
+  // 8. 刷新文件列表UI，确保删除后的列表同步
   renderFileList();
+
+  // 9. 友好反馈：告知删除成功
+  alert(`文件 "${filename}.md" 已成功删除`);
 }
 
 // 导入文件
@@ -279,7 +306,7 @@ function setRightSidebar(collapsed) {
 }
 
 // 右侧侧边栏事件监听
-newFileBtn.addEventListener('click', newFile);
+
 saveFileBtn.addEventListener('click', saveFile);
 deleteFileBtn.addEventListener('click', deleteFile);
 importFileBtn.addEventListener('click', importFile);
