@@ -87,6 +87,7 @@ const fileList = document.getElementById('fileList');
 
 const saveFileBtn = document.getElementById('saveFileBtn');
 
+const deleteFileBtn = document.getElementById('deleteFileBtn');
 // 修复：删除当前文件按钮的事件绑定（显式传递当前文件参数，兜底校验）
 deleteFileBtn.addEventListener('click', () => {
   // 兜底：若currentFile为空，提示用户
