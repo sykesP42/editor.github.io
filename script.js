@@ -620,6 +620,7 @@ function saveColorSetting(elementId, color) {
 }
 
 // 应用颜色设置
+// 应用颜色设置
 function applyColorSettings() {
   const userColors = getUserColors();
   const theme = document.documentElement.getAttribute('data-theme');
@@ -637,7 +638,23 @@ function applyColorSettings() {
   let css = '';
   syntaxElements.forEach(element => {
     const color = userColors[theme][element.id] || defaultColors[theme][element.id];
-    css += `[data-theme="${theme}"] .hljs-${element.id} { color: ${color} !important; }\n`;
+    
+    // 为函数名生成多个可能的CSS选择器，确保覆盖所有语言
+    if (element.id === 'function') {
+      // 同时覆盖多种可能的函数名类名
+      css += `[data-theme="${theme}"] .hljs-function { color: ${color} !important; }\n`;
+      css += `[data-theme="${theme}"] .hljs-title.function_ { color: ${color} !important; }\n`;
+      css += `[data-theme="${theme}"] .hljs-title { color: ${color} !important; }\n`;
+      css += `[data-theme="${theme}"] .hljs-name { color: ${color} !important; }\n`;
+    }
+    // 为标点符号生成CSS选择器
+    else if (element.id === 'punctuation') {
+      css += `[data-theme="${theme}"] .hljs-punctuation { color: ${color} !important; }\n`;
+    }
+    // 其他元素
+    else {
+      css += `[data-theme="${theme}"] .hljs-${element.id} { color: ${color} !important; }\n`;
+    }
   });
   
   style.textContent = css;
