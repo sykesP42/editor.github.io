@@ -30,41 +30,45 @@ npm install # 已经完成
 
 预览生产版本  npm run preview
 
-
-├── public/                              # 静态资源
+markdown-editor-vue/
+├── public/
 │   ├── audio/
 │   │   ├── edit.mp3
 │   │   ├── export.mp3
 │   │   ├── pet.png
 │   │   └── wallpaper.png
-│   └──                  
 ├── src/
-│   ├── components/                     # Vue组件
+│   ├── components/
 │   │   ├── DesktopPet.vue
-│   │   ├── SidebarLeft.vue             # 侧边栏左侧组件
-│   │   ├── SidebarRight.vue            # 侧边栏右侧组件
-│   │   ├── TopBar.vue                  # 顶部栏组件
-│   │   ├── EditorPane.vue              # 编辑区域组件
-│   │   └── FileItem.vue                # 文件项组件
-│   ├── composables/                    # 组合式函数
-│   │   ├── useFileSystem.js            # 文件系统管理
-
-│   │   ├── useTheme.js                 # 主题管理
-│   │   ├── useDesktopPet.js            # 桌面宠物管理
-│   │   ├── useGitHub.js                # GitHub 集成
-│   │   ├── useHighlightColors.js       # 代码高亮颜色管理
-│   │   ├── useSidebar.js               # 侧边栏管理
-│   │   └── useAudio.js                 # 音频播放模块
-│   ├── utils/                          # 通用工具函数 
-│   │   ├── markdownParser.js            # Markdown解析器
-│   │   ├── exportUtils.js              # 导出工具函数
-│   │   └── audioManager.js             # 音频管理模块
-│   ├── styles/                         # 样式文件
-│   │   └── main.css
-│   ├── App.vue                         # 根组件
-│   └── main.js                         # 应用入口
-├── index.html                          # 开发入口
-├── package.json                        # 项目配置
-├── package-lock.json                   # 依赖锁文件
-├── vite.config.js                      # Vite配置
-├── README.md                           # 项目说明
+│   │   ├── SidebarLeft.vue
+│   │   ├── SidebarRight.vue
+│   │   ├── TopBar.vue
+│   │   ├── EditorPane.vue
+│   │   └── FileItem.vue       
+│   ├── composables/
+│   │   ├── useFileSystem.js
+│   │   ├── useTheme.js
+│   │   ├── useAudio.js
+│   │   ├── useGitHub.js
+│   │   ├── useHighlightColors.js
+│   │   ├── useSidebar.js
+│   │   └── useAuth.js           # 新增：认证状态管理
+│   ├── views/                   # 新增：页面级组件
+│   │   ├── EditorView.vue       # 编辑器页面
+│   │   ├── CommunityView.vue    # 社区页面
+│   │   └── LoginView.vue        # 登录页面
+│   ├── router/                  # 新增：路由配置
+│   │   └── index.js
+│   ├── utils/
+│   │   ├── markdownParser.js
+│   │   ├── exportUtils.js
+│   │   └── audioManager.js
+│   ├── styles/
+│   │   ├── main.css
+│   │   └── community.css       # 新增：社区页面样式
+│   ├── App.vue                 # 更新：作为路由容器
+│   └── main.js                 # 更新：集成路由
+├── index.html
+├── package.json
+├── vite.config.js
+└── README.md

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "vue": "^3.3.0",
+    "vue-router": "^4.2.0",  
     "markdown-it": "^13.0.1",
     "highlight.js": "^11.8.0",
     "chart.js": "^4.3.0",

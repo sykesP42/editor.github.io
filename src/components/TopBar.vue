@@ -3,6 +3,15 @@
     <button @click="$emit('toggle-left-sidebar')" title="侧边栏">☰</button>
     <div class="title">📝 仓库链接:https://github.com/222twotwotwo/editor.github.io</div>
     <div class="actions">
+      <!-- 新增：社区导航按钮 -->
+      <button @click="goToCommunity" title="创作社区">💬</button>
+      
+      <!-- 新增：登录/用户按钮 -->
+      <button @click="handleUserAction" :title="isAuthenticated ? '用户中心' : '登录'">
+        {{ isAuthenticated ? (user?.username?.charAt(0) || '👤') : '🔑' }}
+      </button>
+      
+      <!-- 原有按钮保持不变 -->
       <button @click="$emit('toggle-right-sidebar')" title="文件列表">📂</button>
       <button @click="$emit('toggle-sound')">{{ soundIcon }}</button>
       <button @click="$emit('toggle-theme')">{{ themeIcon }}</button>
@@ -15,9 +24,15 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 
 const props = defineProps({
-  soundEnabled: Boolean
+  soundEnabled: Boolean,
+  theme: {
+    type: String,
+    default: 'dark'
+  }
 })
 
 defineEmits([
@@ -30,11 +45,29 @@ defineEmits([
   'export-pdf'
 ])
 
+const router = useRouter()
+const { isAuthenticated, user, logout } = useAuth()
+
 const soundIcon = computed(() => props.soundEnabled ? '🔊' : '🔇')
-const themeIcon = computed(() => {
-  const theme = document.documentElement.getAttribute('data-theme')
-  return theme === 'dark' ? '☀️' : '🌙'
-})
+const themeIcon = computed(() => props.theme === 'dark' ? '☀️' : '🌙')
+
+// 导航到社区页面
+const goToCommunity = () => {
+  router.push('/community')
+}
+
+// 处理用户操作
+const handleUserAction = () => {
+  if (isAuthenticated.value) {
+    // 已登录：可以显示用户菜单或登出
+    if (confirm('确定要退出登录吗？')) {
+      logout()
+    }
+  } else {
+    // 未登录：跳转到登录页面
+    router.push('/login')
+  }
+}
 </script>
 
 <style scoped>
