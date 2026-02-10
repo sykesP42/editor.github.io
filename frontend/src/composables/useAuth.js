@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { authAPI } from '@/services/api'
 
 export function useAuth() {
@@ -9,12 +9,8 @@ export function useAuth() {
 
   const isAuthenticated = computed(() => !!token.value)
 
-  // 初始化时从localStorage恢复用户状态
-  onMounted(() => {
-    if (token.value && !user.value) {
-      fetchProfile()
-    }
-  })
+  // 初始化恢复用户状态由 App.vue 的 onMounted 中调用 fetchProfile 完成，此处不再使用 onMounted，
+  // 否则在路由守卫等非组件上下文中调用 useAuth() 时会触发 "no active component instance" 警告。
 
   const setAuth = (newToken, userData) => {
     token.value = newToken

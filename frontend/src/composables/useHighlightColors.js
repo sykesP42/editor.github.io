@@ -57,6 +57,14 @@ export function useHighlightColors() {
     return saved ? JSON.parse(saved) : { light: {}, dark: {} }
   }
 
+  const setColor = (theme, elementId, color) => {
+    const userColors = getUserColors()
+    if (!userColors[theme]) userColors[theme] = {}
+    userColors[theme][elementId] = color
+    localStorage.setItem('customHighlightColors', JSON.stringify(userColors))
+    applyColorSettings()
+  }
+
   const applyColorSettings = () => {
     const userColors = getUserColors()
     const theme = document.documentElement.getAttribute('data-theme') || 'dark'
@@ -118,6 +126,10 @@ export function useHighlightColors() {
   })
 
   return {
+    syntaxElements,
+    defaultColors,
+    getUserColors,
+    setColor,
     resetHighlightColors,
     applyColorSettings
   }

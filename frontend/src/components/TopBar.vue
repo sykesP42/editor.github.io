@@ -1,6 +1,6 @@
 <template>
   <header class="topbar">
-    <button @click="$emit('toggle-left-sidebar')" title="侧边栏">☰</button>
+    <button type="button" @click="handleToggleLeft" title="侧边栏">☰</button>
     <div class="title">📝 仓库链接:https://github.com/222twotwotwo/editor.github.io</div>
     <div class="actions">
       <!-- 新增：社区导航按钮 -->
@@ -11,8 +11,8 @@
         {{ isAuthenticated ? '🚪 登出' : '🔑 登录' }}
       </button>
       
-      <!-- 原有按钮保持不变 -->
-      <button @click="$emit('toggle-right-sidebar')" title="文件列表">📂</button>
+      <!-- 文件列表：直接使用 useSidebar 的 toggle，与编辑页右侧栏同一状态 -->
+      <button type="button" @click="toggleRightSidebar" title="文件列表">📂</button>
       <button @click="$emit('toggle-sound')">{{ soundIcon }}</button>
       <button @click="$emit('toggle-theme')">{{ themeIcon }}</button>
       <button @click="$emit('export-html')">导出 HTML</button>
@@ -26,18 +26,19 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { useSidebar } from '../composables/useSidebar'
 
 const props = defineProps({
   soundEnabled: Boolean,
   theme: {
     type: String,
     default: 'dark'
-  }
+  },
+  onToggleLeftSidebar: { type: Function, default: null }
 })
 
-defineEmits([
+const emit = defineEmits([
   'toggle-left-sidebar',
-  'toggle-right-sidebar',
   'toggle-sound',
   'toggle-theme',
   'export-html',
@@ -46,7 +47,16 @@ defineEmits([
 ])
 
 const router = useRouter()
-const { isAuthenticated, user, logout } = useAuth()
+const { isAuthenticated, logout } = useAuth()
+const { toggleLeftSidebar: sidebarToggleLeft, toggleRightSidebar } = useSidebar()
+
+const handleToggleLeft = () => {
+  if (typeof props.onToggleLeftSidebar === 'function') {
+    props.onToggleLeftSidebar()
+  } else {
+    sidebarToggleLeft()
+  }
+}
 
 const soundIcon = computed(() => props.soundEnabled ? '🔊' : '🔇')
 const themeIcon = computed(() => props.theme === 'dark' ? '☀️' : '🌙')
@@ -68,6 +78,7 @@ const handleUserAction = () => {
     router.push('/login')
   }
 }
+
 </script>
 
 <style scoped>

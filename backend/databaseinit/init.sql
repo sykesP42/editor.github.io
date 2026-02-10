@@ -26,4 +26,21 @@ INSERT INTO `users` (`username`, `email`, `password_hash`) VALUES
 ('admin', 'admin@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMye1t6iRTb3jXG6z5Y2VvJzQeO3p5wJY5u'),
 ('testuser', 'test@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMye1t6iRTb3jXG6z5Y2VvJzQeO3p5wJY5u');
 
+-- 文档表（数据库上传记录）
+DROP TABLE IF EXISTS `documents`;
+CREATE TABLE `documents` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `filename` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `file_size` bigint NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_updated_at` (`updated_at`),
+  KEY `idx_title` (`title`(100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

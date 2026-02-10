@@ -1,172 +1,79 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { markdownToHtml } from '../utils/markdownParser'
 
+/**
+ * 仅管理当前编辑状态，不使用本地存储；保存/打开/删除由父组件通过数据库 API 完成。
+ */
 export function useFileSystem(markdownParser) {
-  const FILE_STORAGE_KEY = 'markdownStudioFiles'
-  
-  const files = ref({})
   const currentFile = ref(null)
   const currentContent = ref('')
   const fileNameInput = ref('')
   const previewContent = ref('')
 
-  // 初始化文件系统
-  const initFileSystem = () => {
-    const savedFiles = localStorage.getItem(FILE_STORAGE_KEY)
-    if (savedFiles) {
-      files.value = JSON.parse(savedFiles)
-      const fileNames = Object.keys(files.value)
-      if (fileNames.length > 0) {
-        openFile(fileNames[0])
-      }
-    }
-  }
-
-  // 渲染预览
   const renderPreview = () => {
     if (markdownParser) {
       previewContent.value = markdownParser(currentContent.value)
     }
   }
 
-  // 打开文件
-  const openFile = (filename) => {
-    if (!files.value[filename]) return
-    
-    // 保存当前文件内容
-    if (currentFile.value) {
-      files.value[currentFile.value] = currentContent.value
-      saveFilesToStorage()
-    }
-    
-    // 加载新文件内容
-    currentFile.value = filename
-    currentContent.value = files.value[filename]
-    fileNameInput.value = filename
+  /** 新建文档：清空编辑器 */
+  const newFile = () => {
+    currentFile.value = null
+    currentContent.value = ''
+    fileNameInput.value = '新文档'
     renderPreview()
   }
 
-  // 新建文件
-  const newFile = () => {
-    let defaultName = '新文件'
-    let count = 1
-    
-    while (files.value[defaultName]) {
-      defaultName = `新文件${count}`
-      count++
-    }
-    
-    files.value[defaultName] = ''
-    saveFilesToStorage()
-    openFile(defaultName)
+  /** 从数据库加载后设置编辑器内容 */
+  const setContent = (title, content, filename) => {
+    fileNameInput.value = title || ''
+    currentContent.value = content || ''
+    currentFile.value = (filename || '').replace(/\.md$/i, '') || title || ''
+    renderPreview()
   }
 
-  // 保存文件
-  const saveFile = () => {
-    const newFilename = fileNameInput.value.trim()
-    if (!newFilename) {
-      alert('请输入文件名')
-      return
-    }
-    
-    // 如果文件名已更改且存在
-    if (newFilename !== currentFile.value && files.value[newFilename]) {
-      if (!confirm(`文件 "${newFilename}" 已存在，是否覆盖？`)) {
-        return
-      }
-    }
-    
-    // 如果是重命名
-    if (currentFile.value && newFilename !== currentFile.value) {
-      delete files.value[currentFile.value]
-    }
-    
-    // 保存文件内容
-    files.value[newFilename] = currentContent.value
-    saveFilesToStorage()
-    openFile(newFilename)
+  /** 清空当前文档（如删除后） */
+  const clearCurrent = () => {
+    currentFile.value = null
+    currentContent.value = ''
+    fileNameInput.value = ''
+    renderPreview()
   }
 
-  // 删除文件
-  const deleteFile = (filename) => {
-    if (!filename) filename = currentFile.value
-    
-    if (!filename || !files.value[filename]) {
-      alert(`文件 "${filename || '未知'}.md" 不存在或已被删除`)
-      return
-    }
-
-    if (!confirm(`确定要删除 "${filename}.md" 吗？`)) {
-      return
-    }
-
-    const isDeleteCurrentFile = currentFile.value === filename
-
-    // 删除文件
-    delete files.value[filename]
-    saveFilesToStorage()
-
-    if (isDeleteCurrentFile) {
-      currentFile.value = null
-      currentContent.value = ''
-      fileNameInput.value = ''
-      renderPreview()
-    }
-
-    alert(`文件 "${filename}.md" 已成功删除`)
-  }
-
-  // 导入文件
+  /** 导入本地 .md 文件到编辑器，用户可再保存到数据库 */
   const importFile = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.md'
-    
     input.onchange = (e) => {
       const file = e.target.files[0]
       if (!file) return
-      
       const reader = new FileReader()
       reader.onload = (event) => {
-        const filename = file.name.replace(/\.md$/i, '')
-        let finalName = filename
-        let count = 1
-        
-        while (files.value[finalName]) {
-          finalName = `${filename}${count}`
-          count++
-        }
-        
-        files.value[finalName] = event.target.result
-        saveFilesToStorage()
-        openFile(finalName)
-        alert(`已导入文件: ${finalName}.md`)
+        const name = file.name.replace(/\.md$/i, '')
+        fileNameInput.value = name
+        currentContent.value = event.target.result || ''
+        currentFile.value = name
+        renderPreview()
+        alert(`已导入: ${file.name}，可点击「保存文档」上传到数据库`)
       }
       reader.readAsText(file)
     }
-    
     input.click()
   }
 
-  // 保存到localStorage
-  const saveFilesToStorage = () => {
-    localStorage.setItem(FILE_STORAGE_KEY, JSON.stringify(files.value))
-  }
-
   onMounted(() => {
-    initFileSystem()
+    renderPreview()
   })
 
   return {
-    files,
     currentFile,
     currentContent,
     fileNameInput,
     previewContent,
     newFile,
-    openFile,
-    saveFile,
-    deleteFile,
+    setContent,
+    clearCurrent,
     importFile,
     renderPreview
   }

@@ -13,10 +13,10 @@
         </button>
         <button 
           class="btn login-btn"
-          @click="goToLogin"
+          @click="handleAccountAction"
         >
-          <span class="nav-icon">👤</span>
-          <span>{{ isAuthenticated ? '我的账号' : '登录' }}</span>
+          <span class="nav-icon">{{ isAuthenticated ? '🚪' : '👤' }}</span>
+          <span>{{ isAuthenticated ? '登出' : '登录' }}</span>
         </button>
         <button 
           class="btn theme-btn"
@@ -117,7 +117,7 @@ import { useTheme } from '../composables/useTheme'
 import '../styles/community.css'
 
 const router = useRouter()
-const { isAuthenticated, user } = useAuth()
+const { isAuthenticated, logout } = useAuth()
 const { theme, toggleTheme } = useTheme()
 const themeIcon = computed(() => theme.value === 'dark' ? '☀️' : '🌙')
 
@@ -168,10 +168,11 @@ const goToEditor = () => {
   router.push('/editor')
 }
 
-const goToLogin = () => {
+const handleAccountAction = () => {
   if (isAuthenticated.value) {
-    // 已登录，可以跳转到个人中心或其他页面
-    alert('已登录，用户: ' + (user.value?.username || '用户'))
+    if (confirm('确定要退出登录吗？')) {
+      logout()
+    }
   } else {
     router.push('/login')
   }

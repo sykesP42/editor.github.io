@@ -9,8 +9,7 @@ const CommunityView = () => import('@/views/CommunityView.vue')
 const routes = [
   {
     path: '/',
-    redirect: '/editor',
-    meta: { requiresAuth: true }
+    redirect: '/editor'
   },
   {
     path: '/login',
@@ -21,14 +20,12 @@ const routes = [
   {
     path: '/editor',
     name: 'Editor',
-    component: EditorView,
-    meta: { requiresAuth: true }
+    component: EditorView
   },
   {
     path: '/community',
     name: 'Community',
-    component: CommunityView,
-    meta: { requiresAuth: true }
+    component: CommunityView
   },
   {
     path: '/:pathMatch(.*)*',
@@ -41,22 +38,13 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
+// 路由守卫：仅登录页要求未登录时才能访问（已登录则跳转编辑页）
 router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuth()
-  
-  // 检查路由是否需要认证
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    next('/login')
-    return
-  }
-  
-  // 检查路由是否要求未登录（如登录页）
   if (to.meta.requiresGuest && isAuthenticated.value) {
     next('/editor')
     return
   }
-  
   next()
 })
 

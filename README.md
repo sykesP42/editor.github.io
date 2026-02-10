@@ -1,6 +1,6 @@
 # Markdown 编辑器全栈项目
 
-基于 **Vue 3 + Go (Gin)** 的 Markdown 编辑器，支持用户登录、实时预览、文件管理、社区页与 GitHub 集成。
+基于 **Vue 3 + Go (Gin)** 的 Markdown 编辑器，支持用户登录、实时预览、文档存库、社区页与深浅主题。
 
 ---
 
@@ -8,20 +8,20 @@
 
 ### 前端功能
 - **用户与认证**：登录、注册、登出，JWT 鉴权，支持访客浏览
-- **Markdown 编辑**：实时编辑与预览，代码语法高亮（可自定义颜色）
-- **主题**：深色/浅色主题切换
-- **文件管理**：新建、打开、保存、删除、导入本地文件
+- **Markdown 编辑**：实时编辑与预览，编辑区/预览区滚动联动，代码语法高亮（可自定义颜色）
+- **主题与字体**：深色/浅色主题切换，全局滚动条与全局字体（Start）统一
+- **文档管理**：新建、打开、保存、删除、导入本地文件，文档存储于数据库
 - **导出**：导出为 HTML、Markdown、PDF
 - **音效**：编辑与导出时的音效反馈
-- **GitHub**：上传到 GitHub 仓库，上传统计与图表
-- **布局**：可折叠左右侧边栏
+- **布局**：可折叠左右侧边栏（左侧：数据库上传记录 + 代码高亮颜色；右侧：我的文档 + 文档操作）
 - **社区页**：创作社区入口、功能卡片、最新动态展示
 - **桌宠**：桌面宠物组件
 
 ### 后端功能
 - **认证 API**：注册、登录、获取用户资料
+- **文档 API**：上传、列表、获取、更新、删除、搜索、统计（需 JWT）
 - **JWT**：签发与校验 Token，支持受保护接口
-- **MySQL**：用户表存储，自动建库建表与默认账号密码同步
+- **MySQL**：用户表与文档表存储，自动建库建表与默认账号同步
 - **CORS**：支持本地多端口前端开发
 - **健康检查**：`/health` 用于存活探测
 
@@ -31,7 +31,7 @@
 
 | 端     | 技术 |
 |--------|------|
-| 前端   | Vue 3、Vue Router、Vite、Axios、Markdown-it、Highlight.js、html2pdf.js |
+| 前端   | Vue 3、Vue Router、Vite、Axios、Markdown-it、Highlight.js、Chart.js、html2pdf.js |
 | 后端   | Go 1.21+、Gin、go-sql-driver/mysql、golang-jwt、bcrypt、godotenv |
 | 数据库 | MySQL 8.x（推荐） |
 
@@ -40,7 +40,7 @@
 ## 项目目录结构
 
 ```
-back_set/
+上传功能/
 ├── backend/                          # 后端 (Go + Gin)
 │   ├── cmd/
 │   │   └── server/
@@ -52,12 +52,14 @@ back_set/
 │   │   │   └── mysql.go              # MySQL 连接与建库建表
 │   │   ├── handlers/
 │   │   │   ├── auth_handler.go       # 注册/登录/个人资料
+│   │   │   ├── document_handler.go   # 文档 CRUD、搜索、统计
 │   │   │   └── user_handler.go       # 用户相关
 │   │   ├── middleware/
 │   │   │   ├── cors.go               # CORS
 │   │   │   ├── jwt.go                # JWT 鉴权
 │   │   │   └── logger.go             # 日志
 │   │   ├── models/
+│   │   │   ├── document.go           # 文档模型
 │   │   │   └── user.go               # 用户模型
 │   │   ├── server/
 │   │   │   └── server.go             # 路由与服务启动
@@ -66,9 +68,9 @@ back_set/
 │   │       └── password.go           # 密码工具
 │   ├── pkg/
 │   │   └── api/
-│   │       └── response.go           # 统一响应格式
+│   │       └── response.go          # 统一响应格式
 │   ├── databaseinit/
-│   │   └── init.sql                  # 可选：手动初始化 SQL
+│   │   └── init.sql                  # 建库建表（users、documents）
 │   ├── scripts/
 │   │   ├── run.bat                   # Windows 启动脚本
 │   │   ├── init-db.bat               # 初始化数据库脚本
@@ -77,7 +79,7 @@ back_set/
 │   ├── .env                          # 环境变量（需自建，参考下方）
 │   ├── go.mod
 │   ├── go.sum
-│   └── READEME.md                    # 后端说明
+│   └── README.md                     # 后端说明
 │
 ├── frontend/                         # 前端 (Vue 3 + Vite)
 │   ├── public/
@@ -86,21 +88,21 @@ back_set/
 │   │       ├── export.mp3
 │   │       ├── pet.mp3
 │   │       ├── pet.png
+│   │       ├── start.ttf             # 全局字体
 │   │       └── wallpaper.png
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── DesktopPet.vue
 │   │   │   ├── EditorPane.vue
-│   │   │   ├── FileItem.vue
 │   │   │   ├── SidebarLeft.vue
 │   │   │   ├── SidebarRight.vue
 │   │   │   └── TopBar.vue
 │   │   ├── composables/
-│   │   │   ├── useAuth.js
 │   │   │   ├── useAudio.js
+│   │   │   ├── useAuth.js
 │   │   │   ├── useDesktopPet.js
-│   │   │   ├── useFileSystem.js
-│   │   │   ├── useGitHub.js
+│   │   │   ├── useDocument.js       # 文档列表、CRUD、统计
+│   │   │   ├── useFileSystem.js     # 当前编辑状态
 │   │   │   ├── useHighlightColors.js
 │   │   │   ├── useSidebar.js
 │   │   │   └── useTheme.js
@@ -109,7 +111,7 @@ back_set/
 │   │   ├── router/
 │   │   │   └── index.js
 │   │   ├── services/
-│   │   │   └── api.js                # 后端 API 封装
+│   │   │   └── api.js               # 后端 API 封装
 │   │   ├── styles/
 │   │   │   ├── main.css
 │   │   │   └── community.css
@@ -130,7 +132,7 @@ back_set/
 │   ├── .env.development
 │   └── README.md                     # 前端说明
 │
-└── README.md                         # 本文件
+└── README.md                        # 本文件
 ```
 
 ---
@@ -231,10 +233,19 @@ npm run dev
 - **注册**：`POST /api/auth/register`（body: username, email, password）
 - **登录**：`POST /api/auth/login`（body: username, password）
 - **个人资料**：`GET /api/users/profile`（Header: `Authorization: Bearer <token>`）
+- **文档上传**：`POST /api/documents/upload`（Header: Bearer；body: title, content）
+- **文档列表**：`GET /api/documents/list`
+- **文档统计**：`GET /api/documents/stats`
+- **文档搜索**：`GET /api/documents/search?q=关键词`
+- **获取文档**：`GET /api/documents/:id`
+- **更新文档**：`PUT /api/documents/:id`（body: title, content）
+- **删除文档**：`DELETE /api/documents/:id`
+
+（文档相关接口均需 `Authorization: Bearer <token>`。）
 
 ---
 
 ## 参考文档
 
-- 后端详细说明与数据库设计：见 **backend/READEME.md**
+- 后端详细说明与数据库设计：见 **backend/README.md**
 - 前端功能与目录说明：见 **frontend/README.md**

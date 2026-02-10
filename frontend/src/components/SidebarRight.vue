@@ -1,54 +1,63 @@
 <template>
   <aside class="sidebar-right" :class="{ collapsed }">
     <section class="panel">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>📂 文件管理</h3>
-        <div>
-          <button @click="$emit('toggle-sidebar')" title="隐藏侧边栏">⊗</button>
+      <h3>📂 我的文档</h3>
+      <div class="document-list">
+        <div v-if="loading" class="loading">加载中...</div>
+        <div v-else-if="!documents || documents.length === 0" class="empty-list">
+          暂无文档
         </div>
-      </div>
-      <div class="file-list">
-        <div v-if="!files || Object.keys(files).length === 0" class="empty-file-list">
-          无文件
+        <div
+          v-else
+          v-for="doc in documents"
+          :key="doc.id"
+          class="document-item"
+          :class="{ active: currentFile === doc.filename.replace(/\.md$/, '') }"
+          @click="openDocument(doc)"
+        >
+          <div class="document-info">
+            <div class="document-title">{{ doc.title }}</div>
+            <div class="document-meta">
+              <span>{{ formatFileSize(doc.file_size) }}</span>
+              <span>{{ formatDate(doc.updated_at) }}</span>
+            </div>
+          </div>
         </div>
-        <FileItem
-          v-for="filename in Object.keys(files)"
-          :key="filename"
-          :filename="filename"
-          :active="currentFile === filename"
-          @click="$emit('open-file', filename)"
-          @delete="$emit('delete-file', filename)"
-        />
       </div>
     </section>
-    
+
     <section class="panel">
-      <h3>文件操作</h3>
-      <input 
-        :value="fileNameInput" 
+      <h3>文档操作</h3>
+      <input
+        :value="fileNameInput"
         @input="$emit('update-file-name', $event.target.value)"
-        placeholder="文件名（不含.md）"
+        placeholder="文档标题"
       >
-      <button @click="$emit('save-file')">💾 保存文件</button>
-      <button @click="$emit('delete-file', currentFile)">🗑️ 删除当前文件</button>
-      <button @click="$emit('import-file')">📂 导入文件</button>
+      <div class="button-group">
+        <button type="button" @click="$emit('save-file')">💾 保存到数据库</button>
+        <button type="button" @click="$emit('import-file')">📂 导入文档</button>
+        <button
+          type="button"
+          class="delete-current-btn"
+          :disabled="!currentDoc"
+          @click="deleteCurrentDocument"
+        >🗑️ 删除当前文档</button>
+      </div>
     </section>
   </aside>
 </template>
 
 <script setup>
-import FileItem from './FileItem.vue'
+import { computed } from 'vue'
+import { useDocument } from '../composables/useDocument'
 
 const props = defineProps({
   collapsed: Boolean,
-  files: Object,
-  currentFile: String,
-  fileNameInput: String
+  fileNameInput: String,
+  currentFile: String
 })
 
-defineEmits([
-  'toggle-sidebar',
-  'new-file',
+const emit = defineEmits([
   'open-file',
   'save-file',
   'delete-file',
@@ -56,33 +65,47 @@ defineEmits([
   'update-file-name'
 ])
 
-const handleNewFile = () => {
-  let defaultName = '新文件'
-  let count = 1
-  
-  while (props.files[defaultName]) {
-    defaultName = `新文件${count}`
-    count++
+const { documents, loading, deleteDocument: deleteDoc, fetchDocuments } = useDocument()
+
+const currentDoc = computed(() => {
+  if (!props.currentFile || !documents.value?.length) return null
+  return documents.value.find(doc => doc.filename.replace(/\.md$/, '') === props.currentFile) || null
+})
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('zh-CN')
+}
+
+const openDocument = (doc) => {
+  emit('open-file', doc)
+}
+
+const deleteCurrentDocument = async () => {
+  const doc = currentDoc.value
+  if (!doc || !confirm(`确定要删除 "${doc.title}" 吗？`)) return
+  const result = await deleteDoc(doc.id)
+  if (result.success) {
+    await fetchDocuments()
+    emit('delete-file', doc)
   }
-  
-  // 直接修改文件系统状态
-  props.files[defaultName] = ''
-  // 保存到localStorage
-  localStorage.setItem('markdownStudioFiles', JSON.stringify(props.files))
-  
-  // 触发打开新文件
-  emit('open-file', defaultName)
-  emit('update-file-name', defaultName)
 }
 </script>
 
 <style scoped>
 .sidebar-right {
-  width: 280px;
+  width: 320px;
   background: rgba(255, 255, 255, var(--panel-opacity));
   border-left: 1px solid var(--border);
   padding: 12px;
-  transition: width .25s ease, padding .25s ease;
+  transition: width 0.25s ease, padding 0.25s ease;
   overflow-y: auto;
   backdrop-filter: blur(8px);
 }
@@ -96,18 +119,11 @@ const handleNewFile = () => {
   padding: 0;
   border-left: none;
   overflow: hidden;
+  min-width: 0;
 }
 
 .panel {
   margin-bottom: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
-}
-
-[data-theme="dark"] .panel {
-  background: rgba(42, 42, 42, 0.9);
 }
 
 .panel h3 {
@@ -115,13 +131,13 @@ const handleNewFile = () => {
   font-size: 14px;
 }
 
-.panel input,
-.panel button {
+.panel input {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
 }
 
-.file-list {
+.document-list {
   border: 1px solid var(--border);
   border-radius: 4px;
   max-height: 300px;
@@ -130,13 +146,79 @@ const handleNewFile = () => {
   background: rgba(255, 255, 255, 0.8);
 }
 
-[data-theme="dark"] .file-list {
+[data-theme="dark"] .document-list {
   background: rgba(30, 30, 30, 0.8);
 }
 
-.empty-file-list {
-  padding: 12px;
+.document-item {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.document-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.document-item.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  font-weight: bold;
+}
+
+.document-item:last-child {
+  border-bottom: none;
+}
+
+.document-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.document-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.button-group button {
+  margin: 0;
+}
+
+.delete-current-btn {
+  grid-column: 1 / -1;
+}
+
+.delete-current-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading,
+.empty-list {
+  padding: 20px;
   text-align: center;
-  color: #888;
+  color: var(--text);
+  opacity: 0.7;
 }
 </style>

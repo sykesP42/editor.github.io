@@ -111,6 +111,24 @@ func (s *Server) setupRouter() {
 	})
 
 	s.router = router
+
+	// 在 setupRouter 函数中添加文档处理器和路由
+
+	// 文档处理器
+	documentHandler := handlers.NewDocumentHandler(s.db)
+
+	// 文档相关路由（带路径的路由放在 /:id 之前）
+	documents := api.Group("/documents")
+	documents.Use(middleware.JWTAuth(jwt))
+	{
+		documents.POST("/upload", documentHandler.UploadDocument)
+		documents.GET("/list", documentHandler.GetDocuments)
+		documents.GET("/stats", documentHandler.GetDocumentStats)
+		documents.GET("/search", documentHandler.SearchDocuments)
+		documents.GET("/:id", documentHandler.GetDocument)
+		documents.PUT("/:id", documentHandler.UpdateDocument)
+		documents.DELETE("/:id", documentHandler.DeleteDocument)
+	}
 }
 
 func (s *Server) Run() error {

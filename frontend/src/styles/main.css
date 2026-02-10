@@ -1,3 +1,12 @@
+/* 全局字体：audio 目录下的 start.ttf */
+@font-face {
+  font-family: 'Start';
+  src: url('/audio/start.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #f7f7f7;
   --panel: #ffffff;
@@ -16,99 +25,63 @@
   --topbar-opacity: 0.9;
 }
 
-/* ================= 滚动条美化（深浅主题） ================= */
+/* ================= 滚动条美化（全局深浅主题） ================= */
 
 /* 浅色主题 - WebKit (Chrome / Safari / Edge) */
-[data-theme="light"] .sidebar::-webkit-scrollbar,
-[data-theme="light"] .sidebar-right::-webkit-scrollbar,
-[data-theme="light"] #editor::-webkit-scrollbar,
-[data-theme="light"] .file-list::-webkit-scrollbar {
+[data-theme="light"] *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-[data-theme="light"] .sidebar::-webkit-scrollbar-track,
-[data-theme="light"] .sidebar-right::-webkit-scrollbar-track,
-[data-theme="light"] #editor::-webkit-scrollbar-track,
-[data-theme="light"] .file-list::-webkit-scrollbar-track {
+[data-theme="light"] *::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.04);
   border-radius: 4px;
 }
-[data-theme="light"] .sidebar::-webkit-scrollbar-thumb,
-[data-theme="light"] .sidebar-right::-webkit-scrollbar-thumb,
-[data-theme="light"] #editor::-webkit-scrollbar-thumb,
-[data-theme="light"] .file-list::-webkit-scrollbar-thumb {
+[data-theme="light"] *::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
   border-radius: 4px;
 }
-[data-theme="light"] .sidebar::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] .sidebar-right::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] #editor::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] .file-list::-webkit-scrollbar-thumb:hover {
+[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.28);
 }
-[data-theme="light"] .sidebar::-webkit-scrollbar-thumb:active,
-[data-theme="light"] .sidebar-right::-webkit-scrollbar-thumb:active,
-[data-theme="light"] #editor::-webkit-scrollbar-thumb:active,
-[data-theme="light"] .file-list::-webkit-scrollbar-thumb:active {
+[data-theme="light"] *::-webkit-scrollbar-thumb:active {
   background: rgba(0, 0, 0, 0.35);
 }
 
 /* 浅色主题 - Firefox */
-[data-theme="light"] .sidebar,
-[data-theme="light"] .sidebar-right,
-[data-theme="light"] #editor,
-[data-theme="light"] .file-list {
+[data-theme="light"] * {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.22) rgba(0, 0, 0, 0.06);
 }
 
 /* 深色主题 - WebKit */
-[data-theme="dark"] .sidebar::-webkit-scrollbar,
-[data-theme="dark"] .sidebar-right::-webkit-scrollbar,
-[data-theme="dark"] #editor::-webkit-scrollbar,
-[data-theme="dark"] .file-list::-webkit-scrollbar {
+[data-theme="dark"] *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-[data-theme="dark"] .sidebar::-webkit-scrollbar-track,
-[data-theme="dark"] .sidebar-right::-webkit-scrollbar-track,
-[data-theme="dark"] #editor::-webkit-scrollbar-track,
-[data-theme="dark"] .file-list::-webkit-scrollbar-track {
+[data-theme="dark"] *::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
 }
-[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb,
-[data-theme="dark"] .sidebar-right::-webkit-scrollbar-thumb,
-[data-theme="dark"] #editor::-webkit-scrollbar-thumb,
-[data-theme="dark"] .file-list::-webkit-scrollbar-thumb {
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
 }
-[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] .sidebar-right::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] #editor::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] .file-list::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.32);
 }
-[data-theme="dark"] .sidebar::-webkit-scrollbar-thumb:active,
-[data-theme="dark"] .sidebar-right::-webkit-scrollbar-thumb:active,
-[data-theme="dark"] #editor::-webkit-scrollbar-thumb:active,
-[data-theme="dark"] .file-list::-webkit-scrollbar-thumb:active {
+[data-theme="dark"] *::-webkit-scrollbar-thumb:active {
   background: rgba(255, 255, 255, 0.4);
 }
 
 /* 深色主题 - Firefox */
-[data-theme="dark"] .sidebar,
-[data-theme="dark"] .sidebar-right,
-[data-theme="dark"] #editor,
-[data-theme="dark"] .file-list {
+[data-theme="dark"] * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.06);
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system;
+  font-family: 'Start', system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   background-image: url('/audio/wallpaper.png');
@@ -279,17 +252,20 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  min-height: 0;
 }
 
-/* 编辑器 */
+/* 编辑器：禁止右下角拉伸，固定为网格分配的大小 */
 #editor {
   padding: 12px;
-  font-family: monospace;
+  font-family: 'Start', system-ui, -apple-system, sans-serif;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: rgba(255, 255, 255, var(--panel-opacity));
   color: var(--text);
   backdrop-filter: blur(8px);
+  resize: none;
+  min-height: 0;
 }
 
 [data-theme="dark"] #editor {
@@ -352,7 +328,7 @@ body {
   padding-top: 40px;
   border-radius: 6px;
   overflow-x: auto;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-family: 'Start', system-ui, -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -373,12 +349,14 @@ body {
 
 /* 代码块内的代码文字 - 基础颜色 */
 #preview pre.hljs code {
-  color: #f0f0f0 !important; /* 浅灰色基础文字 */
+  font-family: 'Start', system-ui, -apple-system, sans-serif;
+  color: #f0f0f0 !important;
   background: transparent !important;
 }
 
 /* 行内代码样式 */
 #preview code:not(pre code) {
+  font-family: 'Start', system-ui, -apple-system, sans-serif;
   background: rgba(30, 30, 40, 0.15) !important;
   color: #e06c75 !important;
   padding: 2px 6px !important;
