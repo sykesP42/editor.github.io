@@ -92,4 +92,10 @@ export const documentAPI = {
   stats: () => api.get('/api/documents/stats')
 }
 
+export const postAPI = {
+  list: (params = {}) => api.get('/api/posts', { params: { page: params.page || 1, limit: params.limit || 20 } }),
+  get: (id) => api.get(`/api/posts/${id}`),
+  like: (id) => api.post(`/api/posts/${id}/like`)
+}
+
 export default api

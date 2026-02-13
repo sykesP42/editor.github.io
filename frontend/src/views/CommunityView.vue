@@ -11,98 +11,144 @@
           <span class="nav-icon">✏️</span>
           <span>去编辑</span>
         </button>
-        <button 
+        <button class="btn refresh-btn" :disabled="loading" @click="fetchPosts">
+          <span class="nav-icon">{{ loading ? '⏳' : '🔄' }}</span>
+          <span>刷新</span>
+        </button>
+        <button
           class="btn login-btn"
           @click="handleAccountAction"
         >
           <span class="nav-icon">{{ isAuthenticated ? '🚪' : '👤' }}</span>
           <span>{{ isAuthenticated ? '登出' : '登录' }}</span>
         </button>
-        <button 
-          class="btn theme-btn"
-          @click="toggleTheme"
-        >
+        <button class="btn theme-btn" @click="toggleTheme">
           <span class="nav-icon">{{ themeIcon }}</span>
         </button>
       </div>
     </header>
 
-    <!-- 主内容区 -->
-    <main class="home-main">
-      <!-- 社区横幅 -->
-      <section class="home-banner">
-        <h1>创作者交流社区</h1>
-        <p>分享你的创作，发现灵感，与其他创作者互动交流。登录后可以发表评论和分享内容。</p>
+    <!-- 主内容区（参考根目录 index 的 container + content 结构） -->
+    <main class="home-main content">
+      <section class="home-banner header">
+        <h1 class="header-title">创作者交流社区</h1>
+        <p>短帖信息流，支持图片与视频。点击卡片查看详情，登录后可点赞互动。</p>
       </section>
 
-      <!-- 功能卡片 -->
-      <section class="function-cards">
-        <!-- 热门文章 -->
-        <div class="card">
-          <div class="card-icon">🔥</div>
-          <h3>热门文章</h3>
-          <p>浏览社区中最受欢迎的创作内容</p>
-        </div>
-        
-        <!-- 技术分享 -->
-        <div class="card">
-          <div class="card-icon">💻</div>
-          <h3>技术分享</h3>
-          <p>编程技巧、工具推荐、经验分享</p>
-        </div>
-        
-        <!-- 灵感展示 -->
-        <div class="card">
-          <div class="card-icon">✨</div>
-          <h3>灵感展示</h3>
-          <p>查看其他创作者的作品，获取灵感</p>
-        </div>
-        
-        <!-- 问答互助 -->
-        <div class="card" :class="{ 'disabled': !isAuthenticated }">
-          <div class="card-icon">❓</div>
-          <h3>问答互助</h3>
-          <p>{{ isAuthenticated ? '提问或回答技术问题' : '登录后参与问答讨论' }}</p>
-        </div>
-      </section>
+      <!-- 加载/错误状态 -->
+      <div v-if="loading && !posts.length" class="list-state">加载中…</div>
+      <div v-else-if="error" class="list-state list-state-error">{{ error }}</div>
 
-      <!-- 帖子列表 -->
-      <section class="posts-section">
-        <h2>最新动态</h2>
-        <div class="posts-list">
-          <div v-for="post in posts" :key="post.id" class="post-card">
-            <div class="post-header">
-              <img :src="post.author.avatar" :alt="post.author.name" class="avatar">
-              <div class="post-info">
-                <span class="author-name">{{ post.author.name }}</span>
-                <span class="post-time">{{ post.time }}</span>
-              </div>
-              <span class="post-tag">{{ post.tag }}</span>
+      <!-- 帖子列表：网格布局，参考 style.css 的 .list -->
+      <div v-else class="list posts-list">
+        <div
+          v-for="post in posts"
+          :key="post.id"
+          class="list-item post-card"
+          @click="openModal(post)"
+        >
+          <div class="post-header">
+            <img
+              :src="post.author_avatar || defaultAvatar(post.author_name)"
+              :alt="post.author_name"
+              class="avatar"
+            />
+            <div class="post-info">
+              <span class="author-name">{{ post.author_name || '匿名' }}</span>
+              <span class="post-time">{{ formatTime(post.created_at) }}</span>
             </div>
-            <div class="post-content">
-              <h3>{{ post.title }}</h3>
-              <p>{{ post.content }}</p>
-            </div>
-            <div class="post-footer">
-              <button class="action-btn" :disabled="!isAuthenticated">
-                <span class="action-icon">❤️</span>
-                {{ post.likes }}
-              </button>
-              <button class="action-btn" :disabled="!isAuthenticated">
-                <span class="action-icon">💬</span>
-                {{ post.comments }}
-              </button>
-              <button class="action-btn" :disabled="!isAuthenticated">
-                <span class="action-icon">🔗</span>
-                分享
-              </button>
+            <span v-if="post.media_type" class="post-tag">{{ post.media_type === 'video' ? '视频' : '图片' }}</span>
+          </div>
+          <h3 class="item-title">{{ post.title }}</h3>
+          <p class="item-desc">{{ shortContent(post.content) }}</p>
+          <!-- 列表缩略：有图/视频时显示小图或占位 -->
+          <div v-if="post.media_url" class="post-media-thumb">
+            <img
+              v-if="post.media_type === 'image'"
+              :src="post.media_url"
+              :alt="post.title"
+              class="thumb-img"
+              loading="lazy"
+            />
+            <div v-else-if="post.media_type === 'video'" class="thumb-video">
+              <span class="thumb-video-icon">▶</span> 视频
             </div>
           </div>
+          <div class="post-footer">
+            <button
+              class="action-btn"
+              :class="{ liked: post._liked }"
+              :disabled="!isAuthenticated"
+              @click.stop="handleLike(post)"
+            >
+              <span class="action-icon">❤️</span>
+              {{ post.likes_count ?? post.likes }}
+            </button>
+            <button class="action-btn" disabled>
+              <span class="action-icon">💬</span>
+              {{ post.comments_count ?? post.comments ?? 0 }}
+            </button>
+          </div>
         </div>
-      </section>
+      </div>
+
+      <!-- 详情弹窗（参考 index 的 modal） -->
+      <div
+        class="modal"
+        :class="{ 'modal-visible': detailPost }"
+        @click.self="closeModal"
+      >
+        <div class="modal-content">
+          <span class="close-btn" @click="closeModal">&times;</span>
+          <template v-if="detailPost">
+            <div class="modal-header">
+              <img
+                :src="detailPost.author_avatar || defaultAvatar(detailPost.author_name)"
+                :alt="detailPost.author_name"
+                class="avatar"
+              />
+              <div class="post-info">
+                <span class="author-name">{{ detailPost.author_name || '匿名' }}</span>
+                <span class="post-time">{{ formatTime(detailPost.created_at) }}</span>
+              </div>
+            </div>
+            <h2 class="modal-title">{{ detailPost.title }}</h2>
+            <p class="modal-desc">{{ detailPost.content }}</p>
+            <!-- 详情中的图片/视频 -->
+            <div v-if="detailPost.media_url" class="modal-media">
+              <img
+                v-if="detailPost.media_type === 'image'"
+                :src="detailPost.media_url"
+                :alt="detailPost.title"
+                class="modal-media-img"
+              />
+              <video
+                v-else-if="detailPost.media_type === 'video'"
+                :src="detailPost.media_url"
+                controls
+                class="modal-media-video"
+              />
+            </div>
+            <div class="modal-footer">
+              <button
+                class="action-btn"
+                :class="{ liked: detailPost._liked }"
+                :disabled="!isAuthenticated"
+                @click="handleLike(detailPost)"
+              >
+                <span class="action-icon">❤️</span>
+                {{ detailPost.likes_count ?? detailPost.likes }}
+              </button>
+              <span class="action-btn static">
+                <span class="action-icon">💬</span>
+                {{ detailPost.comments_count ?? detailPost.comments ?? 0 }} 评论
+              </span>
+            </div>
+          </template>
+        </div>
+      </div>
     </main>
 
-    <!-- 底部版权 -->
     <footer class="home-footer">
       <p>© 2025 轻量编辑器 - 社区交流，灵感碰撞</p>
     </footer>
@@ -110,73 +156,118 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useTheme } from '../composables/useTheme'
+import { postAPI } from '../services/api'
 import '../styles/community.css'
 
 const router = useRouter()
 const { isAuthenticated, logout } = useAuth()
 const { theme, toggleTheme } = useTheme()
-const themeIcon = computed(() => theme.value === 'dark' ? '☀️' : '🌙')
+const themeIcon = computed(() => (theme.value === 'dark' ? '☀️' : '🌙'))
 
-// 模拟社区帖子数据
-const posts = ref([
-  {
-    id: 1,
-    title: 'Markdown 高级技巧分享',
-    content: '分享一些提高写作效率的 Markdown 技巧，包括自定义样式和扩展语法...',
-    author: {
-      name: '技术达人',
-      avatar: 'https://ui-avatars.com/api/?name=技术达人&background=random'
-    },
-    time: '2小时前',
-    tag: '技术',
-    likes: 42,
-    comments: 8
-  },
-  {
-    id: 2,
-    title: '我的第一个 Vue 项目心得',
-    content: '记录从零开始搭建 Vue 项目的整个过程和遇到的问题...',
-    author: {
-      name: 'Vue新手',
-      avatar: 'https://ui-avatars.com/api/?name=Vue新手&background=random'
-    },
-    time: '1天前',
-    tag: '学习',
-    likes: 28,
-    comments: 5
-  },
-  {
-    id: 3,
-    title: '如何设计优雅的代码高亮',
-    content: '探讨不同编程语言的代码高亮方案和颜色搭配技巧...',
-    author: {
-      name: '设计师',
-      avatar: 'https://ui-avatars.com/api/?name=设计师&background=random'
-    },
-    time: '3天前',
-    tag: '设计',
-    likes: 56,
-    comments: 12
+const posts = ref([])
+const loading = ref(false)
+const error = ref(null)
+const detailPost = ref(null)
+
+const defaultAvatar = (name) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || '匿名')}&background=random`
+
+function shortContent(text, max = 60) {
+  if (!text) return ''
+  return text.length <= max ? text : text.slice(0, max) + '…'
+}
+
+function formatTime(createdAt) {
+  if (!createdAt) return ''
+  const date = new Date(createdAt)
+  const now = new Date()
+  const diff = (now - date) / 1000
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  if (diff < 604800) return `${Math.floor(diff / 86400)} 天前`
+  return date.toLocaleDateString('zh-CN')
+}
+
+async function fetchPosts() {
+  loading.value = true
+  error.value = null
+  try {
+    const res = await postAPI.list({ page: 1, limit: 30 })
+    if (res?.success && res?.data?.list) {
+      posts.value = (res.data.list || []).map((p) => ({ ...p, _liked: false }))
+    } else {
+      posts.value = []
+      error.value = '加载帖子列表失败'
+    }
+  } catch (e) {
+    posts.value = []
+    error.value = e?.message || e?.error || '网络错误，请稍后重试'
+  } finally {
+    loading.value = false
   }
-])
+}
 
-const goToEditor = () => {
+function openModal(post) {
+  detailPost.value = post
+}
+
+function closeModal() {
+  detailPost.value = null
+}
+
+async function handleLike(post) {
+  if (!isAuthenticated.value) return
+  const prevCount = post.likes_count ?? post.likes ?? 0
+  const prevLiked = post._liked
+  // 即时反馈：先更新 UI
+  post._liked = true
+  post.likes_count = prevCount + 1
+  if (detailPost.value && detailPost.value.id === post.id) {
+    detailPost.value._liked = true
+    detailPost.value.likes_count = post.likes_count
+  }
+  try {
+    const res = await postAPI.like(post.id)
+    if (res?.success && res?.data?.likes_count != null) {
+      post.likes_count = res.data.likes_count
+      if (detailPost.value && detailPost.value.id === post.id) {
+        detailPost.value.likes_count = res.data.likes_count
+      }
+    } else {
+      throw new Error('点赞失败')
+    }
+  } catch (e) {
+    post._liked = prevLiked
+    post.likes_count = prevCount
+    if (detailPost.value && detailPost.value.id === post.id) {
+      detailPost.value._liked = prevLiked
+      detailPost.value.likes_count = prevCount
+    }
+    error.value = e?.message || e?.error || '点赞失败，请重试'
+    setTimeout(() => { error.value = null }, 2000)
+  }
+}
+
+function goToEditor() {
   router.push('/editor')
 }
 
-const handleAccountAction = () => {
+function handleAccountAction() {
   if (isAuthenticated.value) {
-    if (confirm('确定要退出登录吗？')) {
-      logout()
-    }
+    if (confirm('确定要退出登录吗？')) logout()
   } else {
     router.push('/login')
   }
 }
+
+onMounted(() => {
+  fetchPosts()
+})
 </script>
 
 <style scoped>
@@ -186,104 +277,103 @@ const handleAccountAction = () => {
   color: var(--text);
 }
 
-.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.disabled:hover {
-  transform: none !important;
-}
-
-.posts-section {
-  margin-top: 60px;
-}
-
-.posts-section h2 {
-  font-size: 1.8rem;
-  margin-bottom: 30px;
+.list-state {
+  text-align: center;
+  padding: 40px 20px;
   color: var(--text);
+  opacity: 0.8;
 }
 
-.posts-list {
-  display: flex;
-  flex-direction: column;
+.list-state-error {
+  color: #e74c3c;
+}
+
+/* 参考根目录 style.css：列表网格 */
+.content {
+  min-height: calc(100vh - 120px);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
-.post-card {
+.list-item {
   background: var(--panel);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border);
 }
 
-.post-card:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+.list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.post-header {
+[data-theme="dark"] .list-item {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .list-item:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.item-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.item-desc {
+  font-size: 14px;
+  color: var(--text);
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+.post-media-thumb {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.thumb-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-video {
+  height: 100px;
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-right: 12px;
-}
-
-.post-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.author-name {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.post-time {
-  font-size: 0.85rem;
-  color: var(--text);
-  opacity: 0.7;
-}
-
-.post-tag {
-  background: var(--border);
-  color: var(--text);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  opacity: 0.8;
-}
-
-.post-content h3 {
-  margin: 0 0 10px 0;
-  color: var(--text);
-}
-
-.post-content p {
+  justify-content: center;
   color: var(--text);
   opacity: 0.8;
-  line-height: 1.6;
-  margin: 0;
+}
+
+.thumb-video-icon {
+  margin-right: 6px;
+  font-size: 1.2rem;
 }
 
 .post-footer {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid var(--border);
 }
 
 .action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   background: none;
@@ -294,28 +384,27 @@ const handleAccountAction = () => {
   padding: 6px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
-.action-btn:hover:not(:disabled) {
+.action-btn:hover:not(:disabled):not(.static) {
   background: var(--bg);
   color: #42b983;
   opacity: 1;
 }
 
+.action-btn.liked {
+  color: #e74c3c;
+  opacity: 1;
+}
+
 .action-btn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: default;
 }
 
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nav-icon {
-  font-size: 1.1rem;
-  line-height: 1;
+.action-btn.static {
+  cursor: default;
 }
 
 .action-icon {
@@ -323,13 +412,129 @@ const handleAccountAction = () => {
   line-height: 1;
 }
 
-.login-btn {
-  background: #42b983 !important;
-  color: white !important;
-  border: 1px solid #42b983 !important;
+/* 弹窗：参考根目录 style.css .modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.login-btn:hover {
-  background: #3aa876 !important;
+.modal-visible {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--panel);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px 30px;
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 24px;
+  color: var(--text);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.modal-desc {
+  font-size: 16px;
+  color: var(--text);
+  opacity: 0.9;
+  line-height: 1.7;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.modal-media {
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.modal-media-img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  display: block;
+}
+
+.modal-media-video {
+  width: 100%;
+  max-height: 360px;
+  display: block;
+}
+
+.modal-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+
+  .home-banner.header .header-title {
+    font-size: 1.5rem;
+  }
 }
 </style>

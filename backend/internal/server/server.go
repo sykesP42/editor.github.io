@@ -82,6 +82,7 @@ func (s *Server) setupRouter() {
 
 	// 处理器
 	authHandler := handlers.NewAuthHandler(s.db, jwt)
+	postHandler := handlers.NewPostHandler(s.db)
 
 	// API路由组 - 注意这里使用 /api 而不是 /api/v1 以匹配前端配置
 	api := router.Group("/api")
@@ -98,6 +99,14 @@ func (s *Server) setupRouter() {
 		users.Use(middleware.JWTAuth(jwt))
 		{
 			users.GET("/profile", authHandler.GetProfile)
+		}
+
+		// 社区帖子（列表和详情公开，点赞需登录）
+		posts := api.Group("/posts")
+		{
+			posts.GET("", postHandler.ListPosts)
+			posts.GET("/:id", postHandler.GetPost)
+			posts.POST("/:id/like", middleware.JWTAuth(jwt), postHandler.LikePost)
 		}
 	}
 
