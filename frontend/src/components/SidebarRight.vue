@@ -26,6 +26,28 @@
       </div>
     </section>
 
+    <section class="panel ai-panel">
+      <h3>✨ AI 续写</h3>
+      <label class="ai-toggle-row">
+        <span class="ai-toggle-label">启用 AI 续写</span>
+        <input
+          type="checkbox"
+          :checked="aiEnabled"
+          @change="toggleAiEnabled"
+        >
+      </label>
+      <div v-if="aiEnabled" class="api-key-row">
+        <label class="api-key-label">API 密钥 (DeepSeek)</label>
+        <input
+          type="password"
+          :value="apiKey"
+          @input="setApiKey($event.target.value)"
+          placeholder="sk- 粘贴你的 API 密钥"
+          class="api-key-input"
+        >
+      </div>
+    </section>
+
     <section class="panel">
       <h3>文档操作</h3>
       <input
@@ -50,6 +72,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useDocument } from '../composables/useDocument'
+import { useAiContinuationSettings } from '../composables/useAiContinuationSettings'
+
+const { aiEnabled, apiKey, setApiKey, toggleAiEnabled } = useAiContinuationSettings()
 
 const props = defineProps({
   collapsed: Boolean,
@@ -220,5 +245,43 @@ const deleteCurrentDocument = async () => {
   text-align: center;
   color: var(--text);
   opacity: 0.7;
+}
+
+/* AI 续写面板 */
+.ai-panel .ai-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.ai-toggle-label {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.ai-panel input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.api-key-row {
+  margin-top: 8px;
+}
+
+.api-key-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.api-key-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0;
 }
 </style>

@@ -43,9 +43,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useDesktopPet } from '../composables/useDesktopPet'
 import { useAudio } from '../composables/useAudio'
+import { useAiContinuationSettings } from '../composables/useAiContinuationSettings'
 
 // 导入组合式函数
 const {
@@ -64,8 +65,11 @@ const {
   isBottomHalf
 } = useDesktopPet()
 
-// 图片路径 - 使用相对路径
-const petImage = './audio/pet.png'
+// 图片路径：调用 AI 续写 API 未返回时显示 petthinking.png，否则显示 pet.png
+const { aiApiLoading } = useAiContinuationSettings()
+const petImage = computed(() =>
+  aiApiLoading.value ? './audio/petthinking.png' : './audio/pet.png'
+)
 
 // 提示显示
 const showHint = ref(true)
