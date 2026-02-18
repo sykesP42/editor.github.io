@@ -6,6 +6,7 @@ import sub from 'markdown-it-sub'
 import sup from 'markdown-it-sup'
 import mark from 'markdown-it-mark'
 import container from 'markdown-it-container'
+import mk from 'markdown-it-katex'
 
 // 初始化 markdown-it，支持更完整的 Markdown 语法
 const md = new MarkdownIt({
@@ -42,6 +43,9 @@ md.use(sup)
 
 // 高亮：==高亮文字==
 md.use(mark)
+
+// 数学公式：行内 $...$，块级 $$...$$
+md.use(mk, { throwOnError: false })
 
 // 自定义容器：::: warning / tip / danger / info
 const containerNames = ['warning', 'tip', 'danger', 'info', 'note']

@@ -259,6 +259,8 @@ body {
 #editor {
   padding: 12px;
   font-family: 'Start', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: rgba(255, 255, 255, var(--panel-opacity));
@@ -266,6 +268,8 @@ body {
   backdrop-filter: blur(8px);
   resize: none;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 [data-theme="dark"] #editor {
@@ -290,6 +294,24 @@ body {
 
 [data-theme="dark"] #preview {
   background: rgba(42, 42, 42, var(--panel-opacity));
+}
+
+/* 预览区数学公式（KaTeX）：行内 $...$、块级 $$...$$ */
+#preview .katex {
+  font-size: 1.05em;
+}
+#preview .katex-display {
+  margin: 0.8em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+#preview .katex-display::-webkit-scrollbar {
+  height: 6px;
+}
+#preview .katex-display::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
 }
 
 /* 代码块包装（含复制按钮） */

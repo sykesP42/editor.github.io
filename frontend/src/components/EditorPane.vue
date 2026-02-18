@@ -627,8 +627,14 @@ onUnmounted(() => {
 
 <style scoped>
 .editor-contenteditable {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-y: auto;
+  overflow-x: hidden;
   outline: none;
   min-height: 0;
 }
@@ -637,6 +643,14 @@ onUnmounted(() => {
   content: attr(data-placeholder);
   color: var(--text);
   opacity: 0.5;
+}
+
+/* 与 textarea 一致：contenteditable 内块元素继承字号行高，避免超出编辑区 */
+.editor-contenteditable p,
+.editor-contenteditable div {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* 续写建议：半透明 */

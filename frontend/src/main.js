@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import './styles/main.css'
 import './styles/community.css'
+import 'katex/dist/katex.min.css'
 import config from './config/env'
 
 // 创建Vue应用
