@@ -206,3 +206,34 @@ curl -sI http://8.134.183.201/
 
 
 ### 最后记得开放80端口
+
+
+
+
+## 新增
+
+```
+sudo mkdir -p /var/www/markdown-editor
+
+# 2. 复制文件（注意用 /. 而不是 /*，这样可以正确复制隐藏文件）
+sudo cp -r /root/workspace/markdown/editor.github.io/frontend/dist/. /var/www/markdown-editor/
+
+# 3. 设置所有者和权限
+sudo chown -R www-data:www-data /var/www/markdown-editor
+sudo chmod -R 755 /var/www/markdown-editor
+# 确保目录是 755，文件是 644
+sudo find /var/www/markdown-editor -type d -exec chmod 755 {} \;
+sudo find /var/www/markdown-editor -type f -exec chmod 644 {} \;
+
+# 4. 修改 Nginx 配置
+# 编辑配置文件，将 root 改为 /var/www/markdown-editor
+sudo vim /etc/nginx/conf.d/markdown-editor.conf
+
+# 5. 测试配置并重载 Nginx
+sudo nginx -t && sudo systemctl reload nginx
+
+
+```
+
+sudo cp -r /root/workspace/markdown/editor.github.io/frontend/dist/. /var/www/markdown-editor/
+
