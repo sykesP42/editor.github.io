@@ -26,14 +26,23 @@
           </button>
         </div>
         
+        <div class="search-box">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索文档..."
+            class="search-input"
+          />
+        </div>
+        
         <div class="document-list">
           <div v-if="loading" class="loading">加载中...</div>
-          <div v-else-if="!documents || documents.length === 0" class="empty-list">
-            暂无文档
+          <div v-else-if="!filteredDocuments || filteredDocuments.length === 0" class="empty-list">
+            {{ searchQuery ? '无匹配文档' : '暂无文档' }}
           </div>
           <div
             v-else
-            v-for="doc in documents"
+            v-for="doc in filteredDocuments"
             :key="doc.id"
             class="document-item"
             @click="openDocumentToWindow(doc)"
@@ -60,12 +69,14 @@
         @contextmenu.prevent="handleDesktopContextMenu"
       >
         <DesktopIcon
-          icon="📝"
-          label="新建编辑器"
-          :initial-x="iconPosition.x"
-          :initial-y="iconPosition.y"
-          @click="createNewEditor"
-          @move="handleIconMove"
+          v-for="icon in desktopIcons"
+          :key="icon.id"
+          :icon="icon.icon"
+          :label="icon.label"
+          :initial-x="icon.x"
+          :initial-y="icon.y"
+          @click="handleIconClick(icon)"
+          @move="(x, y) => handleIconMove(icon.id, x, y)"
         />
 
         <div class="windows-container">
@@ -89,6 +100,7 @@
                 <EditorPane
                   :model-value="getWindowContent(win.id)"
                   :preview-content="getWindowPreview(win.id)"
+                  :appearance="win.appearance"
                   @update:model-value="(v) => handleWindowContentChange(win.id, v)"
                 />
               </div>
@@ -106,6 +118,13 @@
       @close="closeContextMenu"
       @select="handleContextMenuSelect"
     />
+
+    <!-- 任务栏 -->
+    <Taskbar
+      :windows="windows"
+      @activate-window="setActiveWindow"
+      @show-start-menu="createNewEditor"
+    />
   </div>
 </template>
 
@@ -117,6 +136,7 @@ import EditorPane from '../components/EditorPane.vue'
 import WindowComponent from '../components/WindowComponent.vue'
 import DesktopIcon from '../components/DesktopIcon.vue'
 import ContextMenu from '../components/ContextMenu.vue'
+import Taskbar from '../components/Taskbar.vue'
 import { useTheme } from '../composables/useTheme'
 import { useAudio } from '../composables/useAudio'
 import { useSidebar } from '../composables/useSidebar'
@@ -132,7 +152,7 @@ const { leftSidebarCollapsed, toggleLeftSidebar } = useSidebar()
 const {
   windows,
   activeWindowId,
-  iconPosition,
+  desktopIcons,
   createWindow,
   closeWindow,
   setActiveWindow,
@@ -143,8 +163,16 @@ const {
   updateWindowTitle,
   updateWindowContent,
   getWindowById,
+  arrangeWindowsCascade,
+  arrangeWindowsHorizontal,
+  arrangeWindowsVertical,
+  arrangeWindowsGrid,
+  updateIconPosition,
+  markWindowSaved,
   restoreState,
-  restoreIconPosition
+  restoreDesktopIcons,
+  updateWindowAppearance,
+  resetWindowAppearance
 } = useWindowManager()
 const { 
   uploadDocument, 
@@ -159,6 +187,7 @@ const windowContents = ref({})
 const windowPreviews = ref({})
 const windowDocumentIds = ref({})
 const sidebarCollapsed = ref(false)
+const searchQuery = ref('')
 const contextMenu = ref({
   visible: false,
   position: { x: 0, y: 0 },
@@ -170,6 +199,33 @@ const contextMenu = ref({
 const activeWindow = computed(() => {
   return getWindowById(activeWindowId.value)
 })
+
+const activeWindowAppearance = computed(() => {
+  return activeWindow.value?.appearance || {}
+})
+
+const filteredDocuments = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return documents
+  }
+  const query = searchQuery.value.toLowerCase().trim()
+  return documents.filter(doc => 
+    (doc.title && doc.title.toLowerCase().includes(query)) ||
+    (doc.content && doc.content.toLowerCase().includes(query))
+  )
+})
+
+const handleUpdateAppearance = (key, value) => {
+  if (activeWindowId.value) {
+    updateWindowAppearance(activeWindowId.value, key, value)
+  }
+}
+
+const handleResetAppearance = () => {
+  if (activeWindowId.value) {
+    resetWindowAppearance(activeWindowId.value)
+  }
+}
 
 const getWindowContent = (id) => {
   return windowContents.value[id] || ''
@@ -210,6 +266,7 @@ const handleSaveWindowDocument = async (windowId) => {
     if (docId) {
       const res = await updateDocument(docId, { title, content })
       if (res.success) {
+        markWindowSaved(windowId)
         alert('已保存到数据库')
       } else {
         alert('保存失败')
@@ -218,6 +275,7 @@ const handleSaveWindowDocument = async (windowId) => {
       const res = await uploadDocument({ title, content })
       if (res.success && res.data && res.data.id) {
         windowDocumentIds.value[windowId] = res.data.id
+        markWindowSaved(windowId)
         alert('已上传到数据库')
       } else {
         alert('上传失败')
@@ -236,8 +294,28 @@ const switchToOriginalView = (windowId) => {
   router.push('/editor')
 }
 
-const handleIconMove = (x, y) => {
-  iconPosition.value = { x, y }
+const handleIconMove = (iconId, x, y) => {
+  updateIconPosition(iconId, x, y)
+}
+
+const handleIconClick = (icon) => {
+  switch (icon.action) {
+    case 'new-editor':
+      createNewEditor()
+      break
+    case 'go-community':
+      router.push('/community')
+      break
+    case 'file-manager':
+      alert('文件管理功能开发中...')
+      break
+    case 'settings':
+      alert('设置功能开发中...')
+      break
+    case 'trash':
+      alert('垃圾桶功能开发中...')
+      break
+  }
 }
 
 const handleExportHTML = () => {
@@ -318,6 +396,7 @@ const importDocument = () => {
 }
 
 const handleDesktopContextMenu = (e) => {
+  const hasVisibleWindows = windows.value.some(w => !w.isMinimized)
   contextMenu.value = {
     visible: true,
     position: { x: e.clientX, y: e.clientY },
@@ -328,6 +407,11 @@ const handleDesktopContextMenu = (e) => {
       { icon: '📂', label: '导入文档', action: 'import-document' },
       { divider: true },
       { icon: '🔄', label: '刷新文档列表', action: 'refresh-documents' },
+      { divider: true },
+      { icon: '📚', label: '层叠窗口', action: 'arrange-cascade', disabled: !hasVisibleWindows },
+      { icon: '⬅️➡️', label: '水平并排', action: 'arrange-horizontal', disabled: !hasVisibleWindows },
+      { icon: '⬆️⬇️', label: '垂直并排', action: 'arrange-vertical', disabled: !hasVisibleWindows },
+      { icon: '🔲', label: '网格排列', action: 'arrange-grid', disabled: !hasVisibleWindows },
       { divider: true },
       { icon: '⬇️', label: '最小化所有窗口', action: 'minimize-all', disabled: windows.value.length === 0 },
       { icon: '📌', label: '最大化所有窗口', action: 'maximize-all', disabled: windows.value.length === 0 },
@@ -371,6 +455,18 @@ const handleContextMenuSelect = (item) => {
       break
     case 'refresh-documents':
       refreshDocuments()
+      break
+    case 'arrange-cascade':
+      arrangeWindowsCascade()
+      break
+    case 'arrange-horizontal':
+      arrangeWindowsHorizontal()
+      break
+    case 'arrange-vertical':
+      arrangeWindowsVertical()
+      break
+    case 'arrange-grid':
+      arrangeWindowsGrid()
       break
     case 'minimize-all':
       windows.value.forEach(w => {
@@ -434,7 +530,7 @@ const handleKeyDown = (e) => {
 }
 
 onMounted(() => {
-  restoreIconPosition()
+  restoreDesktopIcons()
   const hasRestored = restoreState()
   
   if (!hasRestored || windows.value.length === 0) {
@@ -512,6 +608,47 @@ onMounted(() => {
 
 .toggle-btn:hover {
   background: rgba(0, 0, 0, 0.1);
+}
+
+.search-box {
+  margin-bottom: 12px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .search-input {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f9fafb;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: #6b7280;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2);
 }
 
 .document-list {
@@ -595,6 +732,7 @@ onMounted(() => {
   background-repeat: no-repeat;
   background-position: center center;
   background-attachment: fixed;
+  padding-bottom: 52px;
 }
 
 .windows-container {
@@ -602,7 +740,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 52px;
   pointer-events: none;
 }
 
