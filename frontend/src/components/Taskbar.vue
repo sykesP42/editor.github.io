@@ -1,9 +1,51 @@
 <template>
   <div class="taskbar">
     <div class="taskbar-start">
-      <button class="start-btn" @click="$emit('show-start-menu')">
-        <span class="start-icon">🍎</span>
+      <button 
+        class="start-btn" 
+        :class="{ active: startMenuVisible }"
+        @click="toggleStartMenu"
+        @contextmenu.prevent="handleStartContextMenu"
+      >
+        <span class="start-icon">📌</span>
       </button>
+      
+      <!-- 开始菜单 -->
+      <Transition name="start-menu">
+        <div v-if="startMenuVisible" class="start-menu" @click.stop>
+          <div class="start-menu-header">
+            <span class="start-menu-title">Markdown Editor</span>
+          </div>
+          <div class="start-menu-content">
+            <div class="menu-section">
+              <div 
+                v-for="item in quickActions" 
+                :key="item.id"
+                class="menu-item"
+                @click="handleMenuAction(item)"
+              >
+                <span class="menu-icon">{{ item.icon }}</span>
+                <span class="menu-label">{{ item.label }}</span>
+              </div>
+            </div>
+            
+            <div class="menu-divider"></div>
+            
+            <div class="menu-section">
+              <div 
+                v-for="item in windowActions" 
+                :key="item.id"
+                class="menu-item"
+                :class="{ disabled: item.disabled }"
+                @click="!item.disabled && handleMenuAction(item)"
+              >
+                <span class="menu-icon">{{ item.icon }}</span>
+                <span class="menu-label">{{ item.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
     
     <div class="taskbar-items">
@@ -21,16 +63,16 @@
           v-for="win in group.windows"
           :key="win.id"
           class="taskbar-item"
-          :class="{ active: win.isActive, minimized: win.isMinimized, unsaved: win.content !== win.savedContent }"
+          :class="{ active: win.isActive, minimized: win.isMinimized, unsaved: !win.isDocumentExplorer && win.content !== win.savedContent }"
           :style="getItemStyle(group.color)"
           @click="handleItemClick(win)"
           @contextmenu.prevent="handleItemContextMenu($event, win)"
-          @mouseenter="showPreview(win, $event)"
+          @mouseenter="!win.isDocumentExplorer && showPreview(win, $event)"
           @mouseleave="hidePreview"
         >
-          <span class="item-icon">📝</span>
+          <span class="item-icon">{{ win.isDocumentExplorer ? '📂' : '📝' }}</span>
           <span class="item-title">
-            <span v-if="win.content !== win.savedContent" class="unsaved-dot">•</span>
+            <span v-if="!win.isDocumentExplorer && win.content !== win.savedContent" class="unsaved-dot">•</span>
             {{ win.title }}
           </span>
         </div>
@@ -39,9 +81,9 @@
     
     <div class="taskbar-end">
       <div class="system-tray">
-        <span class="tray-item" title="音量">🔊</span>
-        <span class="tray-item" title="网络">🌐</span>
-        <span class="tray-item" title="设置">⚙️</span>
+        <span class="tray-item" title="切换主题" @click="handleQuickAction('theme')">🎨</span>
+        <span class="tray-item" title="导出" @click="handleQuickAction('export')">📋</span>
+        <span class="tray-item" title="快速保存" @click="handleQuickAction('save')">💾</span>
         <span class="clock" :title="currentTimeFull">{{ currentTime }}</span>
       </div>
     </div>
@@ -64,9 +106,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
-defineProps({
+const props = defineProps({
   windows: {
     type: Array,
     default: () => []
@@ -77,15 +119,29 @@ defineProps({
   }
 })
 
-defineEmits(['activate-window', 'show-start-menu', 'item-context-menu'])
+const emit = defineEmits(['activate-window', 'item-context-menu', 'menu-action', 'quick-action'])
 
 const currentTime = ref('')
 const currentTimeFull = ref('')
 const previewVisible = ref(false)
 const previewWindow = ref(null)
 const previewPosition = ref({ x: 0, y: 0 })
+const startMenuVisible = ref(false)
 let timer = null
 let previewTimer = null
+
+const quickActions = [
+  { id: 'new-editor', icon: '📝', label: '新建编辑器', action: 'new-editor' },
+  { id: 'my-docs', icon: '📁', label: '我的文档', action: 'my-docs' },
+  { id: 'import', icon: '📥', label: '导入文档', action: 'import' },
+  { id: 'community', icon: '💬', label: '创作社区', action: 'community' }
+]
+
+const windowActions = computed(() => [
+  { id: 'minimize-all', icon: '⬇️', label: '最小化所有窗口', action: 'minimize-all', disabled: props.windows.length === 0 },
+  { id: 'maximize-all', icon: '📌', label: '最大化所有窗口', action: 'maximize-all', disabled: props.windows.length === 0 },
+  { id: 'close-all', icon: '🗑️', label: '关闭所有窗口', action: 'close-all', disabled: props.windows.length === 0 }
+])
 
 const updateTime = () => {
   const now = new Date()
@@ -162,14 +218,44 @@ const hidePreview = () => {
   previewVisible.value = false
 }
 
+const toggleStartMenu = (e) => {
+  e.stopPropagation()
+  startMenuVisible.value = !startMenuVisible.value
+}
+
+const handleStartContextMenu = (e) => {
+  e.stopPropagation()
+  emit('menu-action', { action: 'context-menu', event: e })
+}
+
+const handleMenuAction = (item) => {
+  startMenuVisible.value = false
+  emit('menu-action', item)
+}
+
+const handleQuickAction = (action) => {
+  emit('menu-action', { action })
+}
+
+const closeStartMenuOnClickOutside = (e) => {
+  if (startMenuVisible.value) {
+    const taskbarStart = document.querySelector('.taskbar-start')
+    if (taskbarStart && !taskbarStart.contains(e.target)) {
+      startMenuVisible.value = false
+    }
+  }
+}
+
 onMounted(() => {
   updateTime()
   timer = setInterval(updateTime, 1000)
+  document.addEventListener('click', closeStartMenuOnClickOutside)
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
   if (previewTimer) clearTimeout(previewTimer)
+  document.removeEventListener('click', closeStartMenuOnClickOutside)
 })
 </script>
 
@@ -450,5 +536,116 @@ onUnmounted(() => {
 
 [data-theme="dark"] .preview-content-inner {
   color: #9ca3af;
+}
+
+.start-btn.active {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+.taskbar-start {
+  position: relative;
+}
+
+.start-menu {
+  position: absolute;
+  bottom: 58px;
+  left: 0;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .start-menu {
+  background: rgba(31, 41, 55, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.start-menu-enter-active,
+.start-menu-leave-active {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.start-menu-enter-from,
+.start-menu-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+}
+
+.start-menu-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+}
+
+.start-menu-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+}
+
+.start-menu-content {
+  padding: 8px;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.menu-item:hover:not(.disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .menu-item:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menu-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.menu-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.menu-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+[data-theme="dark"] .menu-label {
+  color: #d1d5db;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 6px 0;
+}
+
+[data-theme="dark"] .menu-divider {
+  background: rgba(255, 255, 255, 0.08);
 }
 </style>

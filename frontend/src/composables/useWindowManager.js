@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 
 const STORAGE_KEY = 'windowManagerState'
 const ICON_STORAGE_KEY = 'desktopIconPosition'
+const DOC_ICON_STORAGE_KEY = 'docIconPosition'
 const GROUPS_STORAGE_KEY = 'windowGroups'
 
 let idCounter = 1
@@ -16,6 +17,7 @@ export function useWindowManager() {
   const windows = ref([])
   const activeWindowId = ref(null)
   const iconPosition = ref({ x: 20, y: 20 })
+  const docIconPosition = ref({ x: 120, y: 20 })
   const windowGroups = ref([...DEFAULT_GROUPS])
 
   const windowsList = computed(() => {
@@ -41,7 +43,10 @@ export function useWindowManager() {
         content: w.content || '',
         previewContent: w.previewContent || '',
         documentId: w.documentId || null,
-        groupId: w.groupId || 'default'
+        groupId: w.groupId || 'default',
+        isDocumentExplorer: w.isDocumentExplorer || false,
+        sidebarMode: w.sidebarMode || false,
+        sidebarSide: w.sidebarSide || null
       })),
       activeWindowId: activeWindowId.value,
       groups: windowGroups.value
@@ -51,6 +56,10 @@ export function useWindowManager() {
 
   const saveIconPosition = () => {
     localStorage.setItem(ICON_STORAGE_KEY, JSON.stringify(iconPosition.value))
+  }
+
+  const saveDocIconPosition = () => {
+    localStorage.setItem(DOC_ICON_STORAGE_KEY, JSON.stringify(docIconPosition.value))
   }
 
   const restoreState = () => {
@@ -89,6 +98,20 @@ export function useWindowManager() {
     return false
   }
 
+  const restoreDocIconPosition = () => {
+    const saved = localStorage.getItem(DOC_ICON_STORAGE_KEY)
+    if (saved) {
+      try {
+        const pos = JSON.parse(saved)
+        docIconPosition.value = pos
+        return true
+      } catch (e) {
+        console.error('Failed to restore doc icon position:', e)
+      }
+    }
+    return false
+  }
+
   const createWindow = (options = {}) => {
     const id = idCounter++
     zIndexCounter++
@@ -105,7 +128,10 @@ export function useWindowManager() {
       isActive: true,
       content: options.content || '',
       previewContent: options.previewContent || '',
-      documentId: options.documentId || null
+      documentId: options.documentId || null,
+      isDocumentExplorer: !!options.isDocumentExplorer,
+      sidebarMode: !!options.sidebarMode,
+      sidebarSide: options.sidebarSide || null
     }
     windows.value.forEach(w => w.isActive = false)
     windows.value.push(newWindow)
@@ -259,12 +285,14 @@ export function useWindowManager() {
   watch(windows, saveState, { deep: true })
   watch(activeWindowId, saveState)
   watch(iconPosition, saveIconPosition, { deep: true })
+  watch(docIconPosition, saveDocIconPosition, { deep: true })
   watch(windowGroups, saveState, { deep: true })
 
   return {
     windows,
     activeWindowId,
     iconPosition,
+    docIconPosition,
     windowGroups,
     windowsList,
     groupedWindows,
@@ -281,6 +309,7 @@ export function useWindowManager() {
     saveState,
     restoreState,
     restoreIconPosition,
+    restoreDocIconPosition,
     createGroup,
     deleteGroup,
     updateGroup,
